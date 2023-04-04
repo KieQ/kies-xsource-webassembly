@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Calculator Test</title>
+</head>
+
+<body>
+    <script type="module">
+        import Module from "./build/kie_crypto.js"
+        async function main(){
+            let m = await Module();
+            console.log(m.encrypt("hello"));
+        }
+        main()
+      </script>
+
+</body>
+
+</html>
