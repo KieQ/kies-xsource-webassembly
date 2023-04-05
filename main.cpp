@@ -16,44 +16,48 @@
 #include <cryptopp/secblock.h>
 #include <cryptopp/osrng.h>
 #include <string>
-#include <sstream>
-#include <iostream>
+#include <array>
+#include <chrono>
 
-std::string aes_cbc_mode_encrypt(std::string &plain, CryptoPP::SecByteBlock key, CryptoPP::byte *iv) {
-    std::string cipher;
-    std::string output;
-
-    try {
-        CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption e(key, key.size(), iv);
-
-        CryptoPP::StringSource(plain, true,
-            new CryptoPP::StreamTransformationFilter(e,
-                new CryptoPP::StringSink(cipher)
-            ) //StreamTransformationFilter
-        ); // StringSource
-    } catch (CryptoPP::Exception &exception) {
-        std::cerr << exception.what() << std::endl;
-        exit(1);
+CryptoPP::AutoSeededRandomPool prng;
+std::array<std::string, 2> encrypt(std::string plain)
+{
+    auto cur = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    CryptoPP::SecByteBlock key(CryptoPP::AES::DEFAULT_KEYLENGTH);
+    for (auto i = 0; i < key.size(); i++)
+    {
+        key.begin()[i] = static_cast<CryptoPP::byte>(cur % (256 - i));
     }
 
-    CryptoPP::StringSource(cipher, true,
-        new CryptoPP::HexEncoder(
-            new CryptoPP::StringSink(output)
-        ) // HexEncoder
-    ); // StringSource
-    return output;
-}
+    CryptoPP::byte iv_bytes[CryptoPP::AES::BLOCKSIZE];
+    prng.GenerateBlock(iv_bytes, sizeof(iv_bytes));
 
-std::string encrypt(std::string data){
-    unsigned char key_str[16] = "hello world";
-    char iv[16] = "hello world an";
-    CryptoPP::SecByteBlock key(reinterpret_cast<const unsigned char*>(key_str), sizeof(key_str));
-    auto result = aes_cbc_mode_encrypt(data, key, reinterpret_cast<unsigned char*>(iv));
-    return result;
-}
+    CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption e;
+    e.SetKeyWithIV(key, key.size(), iv_bytes);
 
+    std::string output_bytes;
+    CryptoPP::StringSource ss(plain, true,
+                              new CryptoPP::StreamTransformationFilter(e,
+                                                                       new CryptoPP::StringSink(output_bytes)) // StreamTransformationFilter
+    );
+
+    std::string output;
+    CryptoPP::StringSource ss_key(output_bytes, true,
+                              new CryptoPP::HexEncoder(
+                                  new CryptoPP::StringSink(output)));
+
+    std::string iv;
+    std::string iv_bytes_str{reinterpret_cast<const char *>(iv_bytes), sizeof(iv_bytes)};
+    CryptoPP::StringSource ss_iv(iv_bytes_str, true,
+                              new CryptoPP::HexEncoder(
+                                  new CryptoPP::StringSink(iv)));
+    return {output, iv};
+}
 
 EMSCRIPTEN_BINDINGS(Module)
 {
-   emscripten::function("encrypt", &encrypt);
+    emscripten::value_array<std::array<std::string, 2>>("array_string_2")
+        .element(emscripten::index<0>())
+        .element(emscripten::index<1>());
+    emscripten::function("encrypt", &encrypt);
 }
