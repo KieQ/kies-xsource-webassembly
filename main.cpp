@@ -18,6 +18,7 @@
 #include <string>
 #include <array>
 #include <chrono>
+#include <vector>
 
 CryptoPP::AutoSeededRandomPool prng;
 std::array<std::string, 2> encrypt(std::string plain)
@@ -54,10 +55,28 @@ std::array<std::string, 2> encrypt(std::string plain)
     return {output, iv};
 }
 
+
+std::vector<std::int32_t> random(std::int32_t seed, std::int32_t size){
+    if(size < 0){
+        return {};
+    }
+    std::vector<std::int32_t> vec;
+    vec.reserve(size);
+    for(std::int32_t i = 0; i < size; i++){
+		seed ^= seed << 13;
+		seed ^= seed >> 17;
+		seed ^= seed << 5;
+		vec.push_back(std::abs(seed)%10000);
+	}
+    return vec;
+}
+
 EMSCRIPTEN_BINDINGS(Module)
 {
     emscripten::value_array<std::array<std::string, 2>>("array_string_2")
         .element(emscripten::index<0>())
         .element(emscripten::index<1>());
     emscripten::function("encrypt", &encrypt);
+    emscripten::register_vector<int>("vector_int");
+    emscripten::function("random", static_cast<std::vector<std::int32_t>(*)(std::int32_t, std::int32_t)>(random));
 }

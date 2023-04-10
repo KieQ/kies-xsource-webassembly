@@ -11,7 +11,12 @@
         import Module from "./build/kie_crypto.js"
         async function main(){
             let m = await Module();
-            console.log(m.encrypt("hello"));
+            let r = m.random(100, 100);
+            let v = [];
+            for(let i=0; i<r.size(); i++){
+                v.push(r.get(i));
+            }
+            console.log(v);
         }
         main()
       </script>
