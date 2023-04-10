@@ -11,5 +11,5 @@ find_package(cryptopp REQUIRED)
 
 add_executable(kie_crypto main.cpp)
 set(CMAKE_EXECUTABLE_SUFFIX ".js")
-target_link_options(kie_crypto PUBLIC --bind -sEXPORT_ES6=1)
-target_link_libraries(kie_crypto PRIVATE cryptopp::cryptopp)
+target_link_options(kie_crypto PUBLIC -sEXPORT_ES6=1)
+target_link_libraries(kie_crypto PRIVATE cryptopp::cryptopp embind)
